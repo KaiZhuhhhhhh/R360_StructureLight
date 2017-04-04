@@ -1,8 +1,8 @@
-// pcl_test.cpp : 定义控制台应用程序的入口点。
+// 定义控制台应用程序的入口点。
 //
 
 #include "stdafx.h"
-
+#include "Calibrate.h"
 
 #include <pcl/visualization/cloud_viewer.h>  
 #include <iostream>  
