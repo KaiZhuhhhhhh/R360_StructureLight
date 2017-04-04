@@ -48,7 +48,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	cvWaitKey(0);
 	cvDestroyWindow("test_demo");
 	cvReleaseImage(&test);
-	//return 0;
+	
 
 
 
