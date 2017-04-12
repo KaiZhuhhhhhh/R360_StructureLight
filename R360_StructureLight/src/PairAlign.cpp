@@ -25,11 +25,6 @@
 using pcl::visualization::PointCloudColorHandlerGenericField;
 using pcl::visualization::PointCloudColorHandlerCustom;
 
-//定义类型的别名
-typedef pcl::PointXYZ PointT;
-typedef pcl::PointCloud<PointT> PointCloud;
-typedef pcl::PointNormal PointNormalT;
-typedef pcl::PointCloud<PointNormalT> PointCloudWithNormals;
 
 //全局变量
 //可视化对象
@@ -37,14 +32,7 @@ pcl::visualization::PCLVisualizer *p;
 //左视区和右视区，可视化窗口分成左右两部分
 int vp_1, vp_2;
 
-//定义结构体，用于处理点云
-struct PCD
-{
-	PointCloud::Ptr cloud; //点云指针
-	std::string f_name; //文件名
-	//构造函数
-	PCD() : cloud(new PointCloud) {}; //初始化
-};
+
 
 
 // 定义新的点表达方式< x, y, z, curvature > 坐标+曲率
@@ -140,7 +128,7 @@ void loadData(int argc, char **argv, std::vector<PCD, Eigen::aligned_allocator<P
 //参数output     输出点云
 //参数final_transform 成对变换矩阵
 //参数downsample 是否下采样
-void pairAlign(const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt, PointCloud::Ptr output, Eigen::Matrix4f &final_transform, bool downsample = false)
+void pairAlign(const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt, PointCloud::Ptr output, Eigen::Matrix4f &final_transform, bool downsample)
 {
 	//
 	//为了一致性和速度，下采样
