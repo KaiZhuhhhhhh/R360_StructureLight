@@ -4,8 +4,8 @@
 
 //#pragma once
 
-#ifndef CALIBRATE_ZK_H
-#define CALIBRATE_ZK_H
+#ifndef PAIR_ALIGN_ZK_H
+#define PAIR_ALIGN_ZK_H
 
 #include <string>
 

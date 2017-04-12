@@ -1,9 +1,10 @@
 // 定义控制台应用程序的入口点。
-//
+//关掉了Microsoft符号调试器
 
 #include "stdafx.h"
 #include "Calibrate.h"
-
+//#include <pcl/segmentation/segment_differences.h>
+//#include <opencv2/opencv.hpp> 
 #include <pcl/visualization/cloud_viewer.h>  
 #include <iostream>  
 #include <pcl/io/io.h>  
@@ -12,6 +13,7 @@
 #include <cv.h>
 #include <highgui.h>
 using namespace std;
+
 
 int user_data;
 
