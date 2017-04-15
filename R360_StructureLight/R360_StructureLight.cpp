@@ -3,8 +3,9 @@
 
 #include "stdafx.h"
 #include "Calibrate.h"
-//#include <pcl/segmentation/segment_differences.h>
-//#include <opencv2/opencv.hpp> 
+#include "PairAlign.h"
+#include "config.h"
+
 #include <pcl/visualization/cloud_viewer.h>  
 #include <iostream>  
 #include <pcl/io/io.h>  
@@ -12,73 +13,34 @@
 
 #include <cv.h>
 #include <highgui.h>
-using namespace std;
 
 
-int user_data;
-
-void viewerOneOff(pcl::visualization::PCLVisualizer& viewer)
+int _tmain(int argc, char** argv)
 {
-	viewer.setBackgroundColor(1.0, 0.5, 1.0);
-	pcl::PointXYZ o;
-	o.x = 1.0;
-	o.y = 0;
-	o.z = 0;
-	viewer.addSphere(o, 0.25, "sphere", 0);
-	std::cout << "i only run once" << std::endl;
+	char *str1 = "1_point_cloud.ply";
+	argv[1] = str1;
+	char *str2 = "2_point_cloud.ply";
+	argv[2] = str2;
+	char *str3 = "capture0003.pcd";
+	argv[3] = str3;
+	char *str4 = "capture0004.pcd";
+	argv[4] = str4;
+	char *str5 = "capture0005.pcd";
+	argv[5] = str5;
+	char *str6 = "capture0005.pcd";
+	argv[6] = str6;
 
-}
+	ArgvConfig();
+	argc = total_clude+1;
+	//读取数据
+	std::vector<PCD, Eigen::aligned_allocator<PCD> > data; //模型
+	loadData(argc, argv, data); //读取pcd文件数据，定义见上面	
 
-void viewerPsycho(pcl::visualization::PCLVisualizer& viewer)
-{
-	static unsigned count = 0;
-	std::stringstream ss;
-	ss << "Once per viewer loop: " << count++;
-	viewer.removeShape("text", 0);
-	viewer.addText(ss.str(), 200, 300, "text", 0);
+	inputCameraParam(intrinsic_matrix, distortion_coeffs);//从文件中读取相机参数
+	find_rotation_mat();//算出每幅标定图像的其次变换矩阵存在全局变量T_mat_4x4中
 
-	//FIXME: possible race condition here:  
-	user_data++;
-}
+	AccurateRegistration(data);//精细拼接
 
-int _tmain(int argc, _TCHAR* argv[])
-{
-	IplImage * test;
-	test = cvLoadImage("D:\\Sample_8.png");//图片路径
-	cvNamedWindow("test_demo", 1);
-	cvShowImage("test_demo", test);
-	cvWaitKey(0);
-	cvDestroyWindow("test_demo");
-	cvReleaseImage(&test);
-	
-
-
-
-	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGBA>);
-	pcl::io::loadPCDFile("my_point_cloud.pcd", *cloud);
-
-	pcl::visualization::CloudViewer viewer("Cloud Viewer");
-
-
-
-	//blocks until the cloud is actually rendered  
-	viewer.showCloud(cloud);
-
-	//use the following functions to get access to the underlying more advanced/powerful  
-	//PCLVisualizer  
-
-	//This will only get called once  
-	viewer.runOnVisualizationThreadOnce(viewerOneOff);
-
-	//This will get called once per visualization iteration  
-	viewer.runOnVisualizationThread(viewerPsycho);
-	while (!viewer.wasStopped())
-	{
-		//you can also do cool processing here  
-		//FIXME: Note that this is running in a separate thread from viewerPsycho  
-		//and you should guard against race conditions yourself...  
-		user_data++;
-	}
 	return 0;
 }
 

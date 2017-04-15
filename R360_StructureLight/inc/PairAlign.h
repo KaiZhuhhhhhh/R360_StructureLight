@@ -28,6 +28,8 @@
 //可视化
 #include <pcl/visualization/pcl_visualizer.h>
 
+#include "cv.h"
+
 //命名空间
 using pcl::visualization::PointCloudColorHandlerGenericField;
 using pcl::visualization::PointCloudColorHandlerCustom;
@@ -47,6 +49,7 @@ struct PCD
 	PCD() : cloud(new PointCloud) {}; //初始化
 };
 
+extern int total_clude;
 
 void showCloudsLeft(const PointCloud::Ptr cloud_target, const PointCloud::Ptr cloud_source);
 
@@ -56,6 +59,10 @@ void loadData(int argc, char **argv, std::vector<PCD, Eigen::aligned_allocator<P
 
 void pairAlign(const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt, PointCloud::Ptr output, Eigen::Matrix4f &final_transform, bool downsample = false);
 
+void CvMatToMatrix4fzk(Eigen::Matrix4f *pcl_T, CvMat *cv_T);
 
+void roughTranslation(PointCloud::Ptr cloud, Eigen::Matrix4f &T, int n );
+
+void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data_temp);
 
 #endif

@@ -6,11 +6,17 @@
 
 #ifndef CALIBRATE_ZK_H
 #define CALIBRATE_ZK_H
-
+//
 #include <highgui.h> 
 #include "cv.h"
 #include <iostream> 
 #include "opencv2/opencv.hpp"
+
+extern CvMat * intrinsic_matrix;                //内参数矩阵
+extern CvMat * distortion_coeffs;        //畸变系数
+
+extern CvSize board_size;   //标定板角点数
+extern CvSize2D32f square_size;              
 
 extern std::vector<CvMat> T_mat_4x4;					//旋转矩阵
 

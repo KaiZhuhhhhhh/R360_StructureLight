@@ -1,6 +1,8 @@
+//http://blog.csdn.net/xuezhisdc/article/details/51030943
 
 #include "stdafx.h"
 #include "PairAlign.h"
+#include "Calibrate.h"
 
 #include <boost/make_shared.hpp> //共享指针
 //点/点云
@@ -9,6 +11,9 @@
 #include <pcl/point_representation.h>
 //pcd文件输入/输出
 #include <pcl/io/pcd_io.h>
+//ply文件输入/输出
+#include <pcl/io/ply_io.h>  
+#include <pcl/io/ply/ply.h>
 //滤波
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/filter.h>
@@ -20,6 +25,7 @@
 #include <pcl/registration/transforms.h>
 //可视化
 #include <pcl/visualization/pcl_visualizer.h>
+#include "cv.h"
 
 //命名空间
 using pcl::visualization::PointCloudColorHandlerGenericField;
@@ -32,7 +38,7 @@ pcl::visualization::PCLVisualizer *p;
 //左视区和右视区，可视化窗口分成左右两部分
 int vp_1, vp_2;
 
-
+int total_clude;
 
 
 // 定义新的点表达方式< x, y, z, curvature > 坐标+曲率
@@ -57,7 +63,16 @@ public:
 	}
 };
 
-
+void CvMatToMatrix4fzk(Eigen::Matrix4f *pcl_T, CvMat *cv_T)
+{
+	for (int i = 0; i < 4;i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			(*pcl_T)(i, j) = CV_MAT_ELEM(*cv_T, float, i, j);
+		}
+	}
+}
 
 //在窗口的左视区，简单的显示源点云和目标点云
 void showCloudsLeft(const PointCloud::Ptr cloud_target, const PointCloud::Ptr cloud_source)
@@ -96,7 +111,7 @@ void showCloudsRight(const PointCloudWithNormals::Ptr cloud_target, const PointC
 // 参数models 点云数据集的结果向量
 void loadData(int argc, char **argv, std::vector<PCD, Eigen::aligned_allocator<PCD> > &models)
 {
-	std::string extension(".pcd"); //声明并初始化string类型变量extension，表示文件后缀名
+	std::string extension(".ply"); //声明并初始化string类型变量extension，表示文件后缀名
 	// 通过遍历文件名，读取pcd文件
 	for (int i = 1; i < argc; i++) //遍历所有的文件名（略过程序名）
 	{
@@ -105,13 +120,22 @@ void loadData(int argc, char **argv, std::vector<PCD, Eigen::aligned_allocator<P
 			continue;
 
 		std::transform(fname.begin(), fname.end(), fname.begin(), (int(*)(int))tolower); //将某操作(小写字母化)应用于指定范围的每个元素
-		//检查文件是否是pcd文件
+		//检查文件是否是xxx文件
 		if (fname.compare(fname.size() - extension.size(), extension.size(), extension) == 0)
 		{
 			// 读取点云，并保存到models
 			PCD m;
 			m.f_name = argv[i];
-			pcl::io::loadPCDFile(argv[i], *m.cloud); //读取点云数据
+			if (extension == ".ply")
+			{
+				pcl::PLYReader reader;
+				if (reader.read(argv[i], *m.cloud) < 0)
+					std::cout << "打开失败" << endl;
+			}
+			else if (extension == ".pcd")
+			{
+				pcl::io::loadPCDFile(argv[i], *m.cloud); //读取点云数据
+			}
 			//去除点云中的NaN点（xyz都是NaN）
 			std::vector<int> indices; //保存去除的点的索引
 			pcl::removeNaNFromPointCloud(*m.cloud, *m.cloud, indices); //去除点云中的NaN点
@@ -119,8 +143,26 @@ void loadData(int argc, char **argv, std::vector<PCD, Eigen::aligned_allocator<P
 			models.push_back(m);
 		}
 	}
+	//检查用户数据
+	if (models.empty())
+	{
+		PCL_ERROR("Syntax is: %s <source.pcd> <target.pcd> [*]", argv[0]); //语法
+		PCL_ERROR("[*] - multiple files can be added. The registration results of (i, i+1) will be registered against (i+2), etc"); //可以使用多个文件
+	}
+	PCL_INFO("Loaded %d datasets.", (int)models.size()); //显示读取了多少个点云文件
 }
 
+void roughTranslation(PointCloud::Ptr cloud, Eigen::Matrix4f &T,int n=1)//粗略的将一片点云变换到另一个点云的位置，n便是连续变换次数
+{
+	Eigen::Matrix4f T_temp=Eigen::Matrix4f::Identity();
+	PointCloud::Ptr temp(new PointCloud); //创建临时点云指针
+	*temp = *cloud;
+	for (int i = 0; i < n; i++)
+	{
+		T_temp = T_temp*T;//一共转了几次就乘几下
+	}
+	pcl::transformPointCloud(*temp, *cloud, T_temp);
+}
 
 //简单地配准一对点云数据，并返回结果
 //参数cloud_src  源点云
@@ -128,7 +170,7 @@ void loadData(int argc, char **argv, std::vector<PCD, Eigen::aligned_allocator<P
 //参数output     输出点云
 //参数final_transform 成对变换矩阵
 //参数downsample 是否下采样
-void pairAlign(const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt, PointCloud::Ptr output, Eigen::Matrix4f &final_transform, bool downsample)
+void pairAlign(const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt, PointCloud::Ptr output, Eigen::Matrix4f &final_transform, bool downsample)//把cloud_tgt移动到cloud_src
 {
 	//
 	//为了一致性和速度，下采样
@@ -228,3 +270,75 @@ void pairAlign(const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt,
 
 	final_transform = targetToSource; //最终的变换。目标点云到源点云的变换矩阵
 }
+
+void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data_temp)
+{
+	//创建一个 PCLVisualizer 对象
+	p = new pcl::visualization::PCLVisualizer("Pairwise Incremental Registration example"); //p是全局变量
+	p->createViewPort(0.0, 0, 0.5, 1.0, vp_1); //创建左视区
+	p->createViewPort(0.5, 0, 1.0, 1.0, vp_2); //创建右视区
+
+	//创建点云指针和变换矩阵
+	PointCloud::Ptr result(new PointCloud), source(new PointCloud), target; //创建3个点云指针，分别用于结果，源点云和目标点云
+	//全局变换矩阵，单位矩阵，成对变换
+	//逗号表达式，先创建一个单位矩阵，然后将成对变换 赋给 全局变换
+	Eigen::Matrix4f pairTransform;//GlobalTransform = Eigen::Matrix4f::Identity(), 
+	Eigen::Matrix4f T1 = Eigen::Matrix4f::Identity(), T2 = Eigen::Matrix4f::Identity(), R360Plant_Transform = Eigen::Matrix4f::Zero();
+
+	//计算变换矩阵：p1=T1p0,p2=T2p0,p1=T1*inverser2p1   (p0和p1,p2是对应点，所以当p1与p2重合的变换就是所求),将点云2移动到1
+	for (int i = 0; i < (T_mat_4x4.size()-1); i++)//计算两两标定得到的矩阵，相加然后求平均（也算某种意义的平均齐次变换吧）
+	{
+		CvMatToMatrix4fzk(&T1, &(T_mat_4x4[i]));
+		CvMatToMatrix4fzk(&T2, &(T_mat_4x4[i+1]));
+		R360Plant_Transform += T1*(T2.inverse());
+		std::cout << R360Plant_Transform << endl;
+	}
+	R360Plant_Transform = R360Plant_Transform / (T_mat_4x4.size() - 1);
+	std::cout << R360Plant_Transform << endl;//测试算的对不对
+
+	//粗拼接（转台齐次变换）
+	for (size_t i = 0; i < data_temp.size(); ++i)
+	{
+		roughTranslation(data_temp[i].cloud, R360Plant_Transform, i);//将所有点云移动到1号点云的位置
+	}
+
+	//精拼接，遍历所有的点云文件
+//	PointCloud::Ptr temp(new PointCloud); //创建临时点云指针
+	*result = *(data_temp[0].cloud);
+	for (size_t i = 1; i < data_temp.size(); ++i)//两两配准，1+2，把2移到1位置
+	{
+		*source = *result; //源点云
+		target = data_temp[i].cloud; //目标点云
+		showCloudsLeft(source, target); //在左视区，简单的显示源点云和目标点云		
+
+		//显示正在配准的点云文件名和各自的点数
+		PCL_INFO("Aligning %s (%d points) with %s (%d points).\n", data_temp[i - 1].f_name.c_str(), source->points.size(), data_temp[i].f_name.c_str(), target->points.size());
+
+		//********************************************************
+		//配准2个点云，函数定义见上面
+		pairAlign(source, target, result, pairTransform, true);//temp就是将target拼在src合并的点云
+		//********************************************************
+
+		p->removePointCloud("source"); //根据给定的ID，从屏幕中去除一个点云。参数是ID
+		p->removePointCloud("target");
+		PointCloudColorHandlerCustom<PointT> cloud_tgt_a(result, 0, 255, 0); //设置点云显示颜色，下同
+		//		PointCloudColorHandlerCustom<PointT> cloud_src_h(cloud_src, 255, 0, 0);
+		p->addPointCloud(result, cloud_tgt_a, "target", vp_2); //添加点云数据，下同
+		//		p->addPointCloud(cloud_src, cloud_src_h, "source", vp_2);
+
+		PCL_INFO("Press zzzzzzzz.\n");
+		p->spinOnce();
+		//		Sleep(5000);
+		//p->removePointCloud("source");
+		//p->removePointCloud("target");
+	}
+	char s[20]; 	
+	std::cout << "输入保存文件名：" << endl;
+	std:cin >> s;
+	std::stringstream ss; //这两句是生成文件名
+	ss << *s << ".pcd";
+	pcl::io::savePCDFile(ss.str(), *result); //保存成对的配准结果
+}
+
+
+//注：AccurateRegistration，roughTranslation俩没测试

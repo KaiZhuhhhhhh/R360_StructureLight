@@ -5,6 +5,9 @@
 #include "cv.h"
 #include <iostream> 
 #include "opencv2/opencv.hpp"
+
+#include <Windows.h>
+#include <stdlib.h>
 using namespace std;
 
 CvSize board_size = cvSize(7, 10);   //标定板角点数
@@ -54,11 +57,65 @@ void caculate_Tmat(CvMat * r_vec, CvMat * t_vec, CvMat * T_mat)
 	CV_MAT_ELEM(*T_mat, float, 3, 3) = 1;
 }
 
+void rotate_R360Plant(unsigned int n)
+{
+	HANDLE hcom;
+	hcom = CreateFile(_T("COM4"), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING
+		, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (hcom == INVALID_HANDLE_VALUE)
+	{
+		std::cout<<"连接失败 "<<endl;
+	}
+	SetupComm(hcom, 1024, 1024);
+	DCB dcb;
+	GetCommState(hcom, &dcb);
+	dcb.BaudRate = 4800;
+	dcb.ByteSize = 8;
+	dcb.Parity = 0;
+	dcb.StopBits = 1;
+	SetCommState(hcom, &dcb);
+
+	char data[2];
+	data[0] = (char)n;
+	data[1] = 'a';
+
+	DWORD dwWrittenLen = 0;
+	if (!WriteFile(hcom, data, 1, &dwWrittenLen, NULL))
+	{
+		std::cout << "发送失败 "<<endl;
+	}
+
+	_sleep(1000);
+
+	char str[2];
+	char aa, bb;
+	DWORD wCount;//读取的字节数		 
+	BOOL bReadStat;
+	bReadStat = ReadFile(hcom, str, 1, &wCount, NULL);
+	if (!bReadStat)
+	{
+		std::cout << "读取失败 "<<endl;
+	}
+	aa = str[0];
+	//	bb=str[1];
+	std::cout << "接收:"<<aa;
+	//	dlp::CmdLine::Print("接收:",bb);
+
+	CloseHandle(hcom);  //关闭通讯端口
+
+}
+
+
+
 int find_rotation_mat()
 {
 	char  cali_flag;
+	char t;
 	cout << "1、进行标定    2、已标定，直接测量" << endl;
 	cin >> cali_flag;
+
+	cout << "输入一周旋转几次：" << endl;
+	cin >> t;
 
 	int number_image = 1;
 	char *str1;
@@ -101,6 +158,7 @@ int find_rotation_mat()
 				cout << "成功获取当前帧，并以文件名" << filename << "保存...\n\n";
 				printf("按“C”键截取当前帧并保存为标定图片...\n按“Q”键退出截取帧过程...\n\n");
 				number_image++;
+				rotate_R360Plant(t-'0');
 			}
 			else if (cvWaitKey(10) == 'q')
 			{
