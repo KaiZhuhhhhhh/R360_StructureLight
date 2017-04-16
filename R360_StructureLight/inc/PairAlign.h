@@ -50,6 +50,7 @@ struct PCD
 };
 
 extern int total_clude;
+extern int Registration_flag;//0:转台 1：icp 2：转台+icp
 
 void showCloudsLeft(const PointCloud::Ptr cloud_target, const PointCloud::Ptr cloud_source);
 

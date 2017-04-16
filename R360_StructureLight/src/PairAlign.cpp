@@ -38,7 +38,8 @@ pcl::visualization::PCLVisualizer *p;
 //左视区和右视区，可视化窗口分成左右两部分
 int vp_1, vp_2;
 
-int total_clude;
+int total_clude;//总点云数
+int Registration_flag;//0:转台 1：icp 2：转台+icp
 
 
 // 定义新的点表达方式< x, y, z, curvature > 坐标+曲率
@@ -296,12 +297,14 @@ void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data
 	R360Plant_Transform = R360Plant_Transform / (T_mat_4x4.size() - 1);
 	std::cout << R360Plant_Transform << endl;//测试算的对不对
 
-	//粗拼接（转台齐次变换）
-	for (size_t i = 0; i < data_temp.size(); ++i)
+	if ((Registration_flag == 0) || (Registration_flag == 2))
 	{
-		roughTranslation(data_temp[i].cloud, R360Plant_Transform, i);//将所有点云移动到1号点云的位置
+		//粗拼接（转台齐次变换）
+		for (size_t i = 0; i < data_temp.size(); ++i)
+		{
+			roughTranslation(data_temp[i].cloud, R360Plant_Transform, i);//将所有点云移动到1号点云的位置
+		}
 	}
-
 	//精拼接，遍历所有的点云文件
 //	PointCloud::Ptr temp(new PointCloud); //创建临时点云指针
 	*result = *(data_temp[0].cloud);
@@ -315,8 +318,15 @@ void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data
 		PCL_INFO("Aligning %s (%d points) with %s (%d points).\n", data_temp[i - 1].f_name.c_str(), source->points.size(), data_temp[i].f_name.c_str(), target->points.size());
 
 		//********************************************************
-		//配准2个点云，函数定义见上面
-		pairAlign(source, target, result, pairTransform, true);//temp就是将target拼在src合并的点云
+		if ((Registration_flag == 1) || (Registration_flag == 2))
+		{
+			//配准2个点云，函数定义见上面
+			pairAlign(source, target, result, pairTransform, true);//temp就是将target拼在src合并的点云
+		}
+		else if (Registration_flag == 0)
+		{
+			*result = *source + *target;
+		}
 		//********************************************************
 
 		p->removePointCloud("source"); //根据给定的ID，从屏幕中去除一个点云。参数是ID

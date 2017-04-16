@@ -18,6 +18,7 @@ void ArgvConfig()
 	square_size.width = config_num[2];
 	square_size.height = config_num[3];
 	total_clude = config_num[4];
+	Registration_flag = config_num[5];
 }
 
 void Get_ConfigNum()
