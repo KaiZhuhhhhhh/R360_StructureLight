@@ -11,13 +11,9 @@
 using namespace std;
 
 CvSize board_size = cvSize(7, 10);   //标定板角点数
-CvSize2D32f square_size = cvSize2D32f(10, 10);                //假设我的每个标定方格长宽都是1.82厘米
-float square_length = square_size.width;                //方格长度
-float square_height = square_size.height;                //方格高度
+CvSize2D32f square_size = cvSize2D32f(10, 10);                //方格长宽
 
-int board_width = board_size.width;   //每行角点数
-int board_height = board_size.height;  //每列角点数
-int total_per_image = board_width*board_height;  //每张图片角点总数
+int Camera_ID = 0;
 
 CvMat * intrinsic_matrix = cvCreateMat(3, 3, CV_32FC1);                //内参数矩阵
 CvMat * distortion_coeffs = cvCreateMat(5, 1, CV_32FC1);        //畸变系数
@@ -122,10 +118,16 @@ int find_rotation_mat()
 	str1 = ".jpg";
 	char filename[20] = "";
 
+	float square_length = square_size.width;                //方格长度
+	float square_height = square_size.height;                //方格高度
+	int board_width = board_size.width;   //每行角点数
+	int board_height = board_size.height;  //每列角点数
+	int total_per_image = board_width*board_height;  //每张图片角点总数
+
 	if (cali_flag == '1')
 	{
 		CvCapture* capture;
-		capture = cvCreateCameraCapture(0);
+		capture = cvCreateCameraCapture(Camera_ID);
 
 		if (capture == 0)
 		{
@@ -172,10 +174,14 @@ int find_rotation_mat()
 		//	cvReleaseImage(&frame);
 		cvReleaseCapture(&capture);
 	}
+	else if (cali_flag == '2')
+	{
+		number_image = 2;
+	}
+
 	IplImage * show;
 	cvNamedWindow("RePlay", 1);
 
-	number_image = 2;
 	int number_image_copy = number_image;  //复制图像帧数
 
 	int count;  //存储每帧图像中实际识别的角点数

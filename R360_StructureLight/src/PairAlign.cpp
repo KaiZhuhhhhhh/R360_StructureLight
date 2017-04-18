@@ -39,8 +39,12 @@ pcl::visualization::PCLVisualizer *p;
 int vp_1, vp_2;
 
 int total_clude;//总点云数
-int Registration_flag;//0:转台 1：icp 2：转台+icp
-
+int Registration_flag=2;//0:转台 1：icp 2：转台+icp
+int KSearchnum = 30;
+float MaxCorrespondenceDistance = 0.1; //对应点之间的最大距离（0.1）, 在配准过程中，忽略大于该阈值的点
+float LeafSize = 0.05;
+float TransformationEpsilon = 1e-6;//允许最大误差
+bool downsample_flag = true;
 
 // 定义新的点表达方式< x, y, z, curvature > 坐标+曲率
 class MyPointRepresentation : public pcl::PointRepresentation <PointNormalT> //继承关系
@@ -181,7 +185,7 @@ void pairAlign(const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt,
 	pcl::VoxelGrid<PointT> grid; //VoxelGrid 把一个给定的点云，聚集在一个局部的3D网格上,并下采样和滤波点云数据
 	if (downsample) //下采样
 	{
-		grid.setLeafSize(0.05, 0.05, 0.05); //设置体元网格的叶子大小
+		grid.setLeafSize(LeafSize, LeafSize, LeafSize); //设置体元网格的叶子大小
 		//下采样 源点云
 		grid.setInputCloud(cloud_src); //设置输入点云
 		grid.filter(*src); //下采样和滤波，并存储在src中
@@ -201,7 +205,7 @@ void pairAlign(const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt,
 	pcl::NormalEstimation<PointT, PointNormalT> norm_est; //该对象用于计算法向量
 	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>()); //创建kd树，用于计算法向量的搜索方法
 	norm_est.setSearchMethod(tree); //设置搜索方法
-	norm_est.setKSearch(30); //设置最近邻的数量
+	norm_est.setKSearch(KSearchnum); //设置最近邻的数量
 	norm_est.setInputCloud(src); //设置输入云
 	norm_est.compute(*points_with_normals_src); //计算法向量，并存储在points_with_normals_src
 	pcl::copyPointCloud(*src, *points_with_normals_src); //复制点云（坐标）到points_with_normals_src（包含坐标和法向量）
@@ -217,9 +221,9 @@ void pairAlign(const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt,
 
 	//创建非线性ICP对象 并设置参数
 	pcl::IterativeClosestPointNonLinear<PointNormalT, PointNormalT> reg; //创建非线性ICP对象（ICP变体，使用Levenberg-Marquardt最优化）
-	reg.setTransformationEpsilon(1e-6); //设置容许的最大误差（迭代最优化）
+	reg.setTransformationEpsilon(TransformationEpsilon); //设置容许的最大误差（迭代最优化）
 	//***** 注意：根据自己数据库的大小调节该参数
-	reg.setMaxCorrespondenceDistance(0.1);  //设置对应点之间的最大距离（0.1m）,在配准过程中，忽略大于该阈值的点
+	reg.setMaxCorrespondenceDistance(MaxCorrespondenceDistance);  //设置对应点之间的最大距离（0.1）,在配准过程中，忽略大于该阈值的点
 	reg.setPointRepresentation(boost::make_shared<const MyPointRepresentation>(point_representation)); //设置点表达
 	//设置源点云和目标点云
 	//reg.setInputSource (points_with_normals_src); //版本不符合，使用下面的语句
@@ -321,7 +325,7 @@ void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data
 		if ((Registration_flag == 1) || (Registration_flag == 2))
 		{
 			//配准2个点云，函数定义见上面
-			pairAlign(source, target, result, pairTransform, true);//temp就是将target拼在src合并的点云
+			pairAlign(source, target, result, pairTransform, downsample_flag);//temp就是将target拼在src合并的点云
 		}
 		else if (Registration_flag == 0)
 		{
@@ -342,13 +346,14 @@ void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data
 		//p->removePointCloud("source");
 		//p->removePointCloud("target");
 	}
-	char s[20]; 	
+	char s[30]; 	
 	std::cout << "输入保存文件名：" << endl;
 	std:cin >> s;
-	std::stringstream ss; //这两句是生成文件名
-	ss << *s << ".pcd";
-	pcl::io::savePCDFile(ss.str(), *result); //保存成对的配准结果
+	std::stringstream output_filename; //这两句是生成文件名
+	output_filename << ".//result//" << s << ".ply";
+	pcl::PLYWriter writer;
+	writer.write(output_filename.str(), *result);
+//	pcl::io::savePCDFile(ss.str(), *result); //保存成对的配准结果
 }
 
 
-//注：AccurateRegistration，roughTranslation俩没测试

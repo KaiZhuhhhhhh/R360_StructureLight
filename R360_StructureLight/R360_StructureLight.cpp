@@ -1,6 +1,8 @@
 // 定义控制台应用程序的入口点。
 //关掉了Microsoft符号调试器
-
+//
+// Created by 朱凯 on 17/4/4.
+//
 #include "stdafx.h"
 #include "Calibrate.h"
 #include "PairAlign.h"
@@ -21,14 +23,20 @@ int _tmain(int argc, char** argv)
 	argv[1] = str1;
 	char *str2 = "2_point_cloud.ply";
 	argv[2] = str2;
-	char *str3 = "capture0003.pcd";
+	char *str3 = "3_point_cloud.ply";
 	argv[3] = str3;
-	char *str4 = "capture0004.pcd";
+	char *str4 = "4_point_cloud.ply";
 	argv[4] = str4;
-	char *str5 = "capture0005.pcd";
+	char *str5 = "5_point_cloud.ply";
 	argv[5] = str5;
-	char *str6 = "capture0005.pcd";
+	char *str6 = "6_point_cloud.ply";
 	argv[6] = str6;
+	char *str7 = "7_point_cloud.ply";
+	argv[7] = str7 ;
+	char *str8 = "8_point_cloud.ply";
+	argv[8] = str8;
+	char *str9 = "9_point_cloud.ply";
+	argv[9] = str7;
 
 	ArgvConfig();
 	argc = total_clude+1;

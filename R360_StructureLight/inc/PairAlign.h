@@ -51,6 +51,11 @@ struct PCD
 
 extern int total_clude;
 extern int Registration_flag;//0:转台 1：icp 2：转台+icp
+extern int KSearchnum;
+extern float MaxCorrespondenceDistance; //对应点之间的最大距离（0.1）, 在配准过程中，忽略大于该阈值的点
+extern float LeafSize;
+extern float TransformationEpsilon ;//允许最大误差
+extern bool downsample_flag;
 
 void showCloudsLeft(const PointCloud::Ptr cloud_target, const PointCloud::Ptr cloud_source);
 
