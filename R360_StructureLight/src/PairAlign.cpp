@@ -296,6 +296,8 @@ void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data
 		CvMatToMatrix4fzk(&T1, &(T_mat_4x4[i]));
 		CvMatToMatrix4fzk(&T2, &(T_mat_4x4[i+1]));
 		R360Plant_Transform += T1*(T2.inverse());
+		std::cout << T1<< endl;
+		std::cout << T2<< endl;
 		std::cout << R360Plant_Transform << endl;
 	}
 	R360Plant_Transform = R360Plant_Transform / (T_mat_4x4.size() - 1);
@@ -304,7 +306,7 @@ void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data
 	if ((Registration_flag == 0) || (Registration_flag == 2))
 	{
 		//粗拼接（转台齐次变换）
-		for (size_t i = 0; i < data_temp.size(); ++i)
+		for (size_t i = 1; i < data_temp.size(); ++i)
 		{
 			roughTranslation(data_temp[i].cloud, R360Plant_Transform, i);//将所有点云移动到1号点云的位置
 		}

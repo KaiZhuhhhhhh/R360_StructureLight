@@ -71,9 +71,9 @@ void rotate_R360Plant(unsigned int n)
 	dcb.StopBits = 1;
 	SetCommState(hcom, &dcb);
 
-	char data[2];
+	char data[1];
 	data[0] = (char)n;
-	data[1] = 'a';
+//	data[1] = 'a';
 
 	DWORD dwWrittenLen = 0;
 	if (!WriteFile(hcom, data, 1, &dwWrittenLen, NULL))
