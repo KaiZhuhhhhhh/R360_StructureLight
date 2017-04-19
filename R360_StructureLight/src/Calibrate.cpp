@@ -14,6 +14,7 @@ CvSize board_size = cvSize(7, 10);   //标定板角点数
 CvSize2D32f square_size = cvSize2D32f(10, 10);                //方格长宽
 
 int Camera_ID = 0;
+int Cali_Pic_Num;
 
 CvMat * intrinsic_matrix = cvCreateMat(3, 3, CV_32FC1);                //内参数矩阵
 CvMat * distortion_coeffs = cvCreateMat(5, 1, CV_32FC1);        //畸变系数
@@ -106,7 +107,7 @@ void rotate_R360Plant(unsigned int n)
 int find_rotation_mat()
 {
 	char  cali_flag;
-	char t;
+	char t[10];
 	cout << "1、进行标定    2、已标定，直接测量" << endl;
 	cin >> cali_flag;
 
@@ -160,7 +161,7 @@ int find_rotation_mat()
 				cout << "成功获取当前帧，并以文件名" << filename << "保存...\n\n";
 				printf("按“C”键截取当前帧并保存为标定图片...\n按“Q”键退出截取帧过程...\n\n");
 				number_image++;
-				rotate_R360Plant(t-'0');
+				rotate_R360Plant(atoi(t));
 			}
 			else if (cvWaitKey(10) == 'q')
 			{
@@ -176,7 +177,7 @@ int find_rotation_mat()
 	}
 	else if (cali_flag == '2')
 	{
-		number_image = 2;
+		number_image = Cali_Pic_Num;
 	}
 
 	IplImage * show;

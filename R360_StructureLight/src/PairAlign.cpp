@@ -298,6 +298,7 @@ void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data
 		R360Plant_Transform += T1*(T2.inverse());
 		std::cout << T1<< endl;
 		std::cout << T2<< endl;
+		std::cout << T1*(T2.inverse()) << endl;
 		std::cout << R360Plant_Transform << endl;
 	}
 	R360Plant_Transform = R360Plant_Transform / (T_mat_4x4.size() - 1);

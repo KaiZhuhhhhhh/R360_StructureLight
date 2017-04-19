@@ -25,6 +25,7 @@ void ArgvConfig()
 	LeafSize = config_num[9];
 	TransformationEpsilon = config_num[10];//ÔÊÐí×î´óÎó²î
 	downsample_flag = (bool)(config_num[11]);
+	Cali_Pic_Num = (int)(config_num[12]);
 }
 
 void Get_ConfigNum()

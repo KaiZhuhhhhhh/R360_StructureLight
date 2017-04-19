@@ -13,6 +13,7 @@
 #include "opencv2/opencv.hpp"
 
 extern int Camera_ID ;
+extern int Cali_Pic_Num;
 
 extern CvMat * intrinsic_matrix;                //内参数矩阵
 extern CvMat * distortion_coeffs;        //畸变系数
