@@ -17,13 +17,14 @@ extern int Cali_Pic_Num;
 
 extern CvMat * intrinsic_matrix;                //内参数矩阵
 extern CvMat * distortion_coeffs;        //畸变系数
+extern CvMat * extrinsic_matrix;        //畸变系数
 
 extern CvSize board_size;   //标定板角点数
 extern CvSize2D32f square_size;              
 
 extern std::vector<CvMat> T_mat_4x4;					//旋转矩阵
 
-void inputCameraParam(CvMat * intrinsic_matrix1, CvMat * distortion_coeffs1);
+void inputCameraParam(CvMat * intrinsic_matrix1, CvMat * distortion_coeffs1, CvMat * extrinsic_matrix1);
 void caculate_Tmat(CvMat * r_vec, CvMat * t_vec, CvMat * T_mat);
 int find_rotation_mat();
 

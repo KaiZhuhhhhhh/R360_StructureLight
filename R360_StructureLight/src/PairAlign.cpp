@@ -288,17 +288,19 @@ void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data
 	//全局变换矩阵，单位矩阵，成对变换
 	//逗号表达式，先创建一个单位矩阵，然后将成对变换 赋给 全局变换
 	Eigen::Matrix4f pairTransform;//GlobalTransform = Eigen::Matrix4f::Identity(), 
-	Eigen::Matrix4f T1 = Eigen::Matrix4f::Identity(), T2 = Eigen::Matrix4f::Identity(), R360Plant_Transform = Eigen::Matrix4f::Zero();
-
-	//计算变换矩阵：p1=T1p0,p2=T2p0,p1=T1*inverser2p1   (p0和p1,p2是对应点，所以当p1与p2重合的变换就是所求),将点云2移动到1
+	Eigen::Matrix4f T1 = Eigen::Matrix4f::Identity(), T2 = Eigen::Matrix4f::Identity(), R360Plant_Transform = Eigen::Matrix4f::Zero(), R_Cam2Pro = Eigen::Matrix4f::Identity();
+	//计算变换矩阵：p1=T1p0,p2=T2p0,p1=T1*inverserT2p2   (p0和p1,p2是对应点，所以当p1与p2重合的变换就是所求),将点云2移动到1
 	for (int i = 0; i < (T_mat_4x4.size()-1); i++)//计算两两标定得到的矩阵，相加然后求平均（也算某种意义的平均齐次变换吧）
 	{
 		CvMatToMatrix4fzk(&T1, &(T_mat_4x4[i]));
 		CvMatToMatrix4fzk(&T2, &(T_mat_4x4[i+1]));
-		R360Plant_Transform += T1*(T2.inverse());
+		CvMatToMatrix4fzk(&R_Cam2Pro, extrinsic_matrix);
+		R360Plant_Transform += (R_Cam2Pro.inverse())*(T1.inverse())*(T2)*(R_Cam2Pro);
 		std::cout << T1<< endl;
 		std::cout << T2<< endl;
-		std::cout << T1*(T2.inverse()) << endl;
+		std::cout << "T1*(T2.inverse()):" << endl;
+		std::cout << T1*(T2.inverse())<< endl;
+		std::cout << (R_Cam2Pro)*(T1.inverse())*(T2)*(R_Cam2Pro.inverse()) << endl;
 		std::cout << R360Plant_Transform << endl;
 	}
 	R360Plant_Transform = R360Plant_Transform / (T_mat_4x4.size() - 1);

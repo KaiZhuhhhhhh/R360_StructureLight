@@ -44,7 +44,11 @@ int _tmain(int argc, char** argv)
 	std::vector<PCD, Eigen::aligned_allocator<PCD> > data; //模型
 	loadData(argc, argv, data); //读取pcd文件数据，定义见上面	
 
-	inputCameraParam(intrinsic_matrix, distortion_coeffs);//从文件中读取相机参数
+	inputCameraParam(intrinsic_matrix, distortion_coeffs, extrinsic_matrix);//从文件中读取相机参数
+	cv::Mat a;
+	a = extrinsic_matrix;
+	std::cout << a << endl;
+
 	find_rotation_mat();//算出每幅标定图像的其次变换矩阵存在全局变量T_mat_4x4中
 
 	AccurateRegistration(data);//精细拼接
