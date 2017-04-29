@@ -18,16 +18,18 @@ int Cali_Pic_Num;
 
 CvMat * intrinsic_matrix = cvCreateMat(3, 3, CV_64FC1);                //内参数矩阵
 CvMat * distortion_coeffs = cvCreateMat(5, 1, CV_64FC1);        //畸变系数
-CvMat * extrinsic_matrix = cvCreateMat(4, 4, CV_32FC1);        //畸变系数
+CvMat * Cam_extrinsic_matrix = cvCreateMat(4, 4, CV_32FC1);    //相机坐标系到投影仪
+CvMat * Pro_extrinsic_matrix = cvCreateMat(4, 4, CV_32FC1);    //世界坐标系到投影仪
 
 vector<CvMat> T_mat_4x4;					//旋转矩阵
 
-void inputCameraParam(CvMat * intrinsic_matrix1, CvMat * distortion_coeffs1, CvMat * extrinsic_matrix1)
+void inputCameraParam(CvMat * intrinsic_matrix1, CvMat * distortion_coeffs1, CvMat * Cam_extrinsic_matrix1, CvMat * Pro_extrinsic_matrix1)
 {
 	CvMat * rotation_vec = cvCreateMat(3, 1, CV_32FC1);                //旋转矩阵
 	CvMat * translation_vec = cvCreateMat(3, 1, CV_32FC1);        //平移矩阵
 	CvMat *temp = cvCreateMat(2, 3, CV_64FC1);        
 
+	//获取相机参数
 	CvFileStorage *fs;
 	fs = cvOpenFileStorage("D:/TexasInstruments-DLP/DLP4500-structurelight-R360/bin/calibration/data/camera.xml", 0, CV_STORAGE_READ);
 	if (fs)
@@ -48,15 +50,37 @@ void inputCameraParam(CvMat * intrinsic_matrix1, CvMat * distortion_coeffs1, CvM
 		CV_MAT_ELEM(*translation_vec, float, i, 0) = CV_MAT_ELEM(*temp, double, 1, i);
 	}
 
-	caculate_Tmat(rotation_vec, translation_vec, extrinsic_matrix1);
+	caculate_Tmat(rotation_vec, translation_vec, Cam_extrinsic_matrix1);
+
+	//获取投影仪参数
+	CvFileStorage *fs1;
+	fs = cvOpenFileStorage("D:/TexasInstruments-DLP/DLP4500-structurelight-R360/bin/calibration/data/projector.xml", 0, CV_STORAGE_READ);
+	if (fs)
+	{
+		*temp = *cvCloneMat((CvMat *)cvReadByName(fs, NULL, "extrinsic"));
+		cvReleaseFileStorage(&fs);
+	}
+	else
+	{
+		cout << "Error: can not find the intrinsics!!!!!" << endl;
+	}
+
+	for (int i = 0; i < 3; i++)
+	{
+		CV_MAT_ELEM(*rotation_vec, float, i, 0) = CV_MAT_ELEM(*temp, double, 0, i);
+		CV_MAT_ELEM(*translation_vec, float, i, 0) = CV_MAT_ELEM(*temp, double, 1, i);
+	}
+	caculate_Tmat(rotation_vec, translation_vec, Pro_extrinsic_matrix1);
 
 	cv::Mat a;
 	a = intrinsic_matrix1;
 	std::cout << "intrinsic:" << a << endl;
 	a = distortion_coeffs1;
 	std::cout << "distortion:" << a << endl;
-	a = extrinsic_matrix1;
-	std::cout <<"extrinsic:"<< a << endl;
+	a = Cam_extrinsic_matrix;
+	std::cout <<"Cam_extrinsic:"<< a << endl;
+	a = Pro_extrinsic_matrix;
+	std::cout << "Pro_extrinsic_matrix:" << a << endl;
 
 	cvReleaseMat(&rotation_vec);
 	cvReleaseMat(&translation_vec);
