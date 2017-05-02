@@ -288,29 +288,31 @@ void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data
 	//全局变换矩阵，单位矩阵，成对变换
 	//逗号表达式，先创建一个单位矩阵，然后将成对变换 赋给 全局变换
 	Eigen::Matrix4f pairTransform;//GlobalTransform = Eigen::Matrix4f::Identity(), 
-	Eigen::Matrix4f T1 = Eigen::Matrix4f::Identity(), T2 = Eigen::Matrix4f::Identity(), R360Plant_Transform = Eigen::Matrix4f::Zero(), T_Cam2Pro = Eigen::Matrix4f::Identity(), T_Word2Pro = Eigen::Matrix4f::Identity(), T_word2Cam = Eigen::Matrix4f::Identity();
+	Eigen::Matrix4f T1 = Eigen::Matrix4f::Identity(), T2 = Eigen::Matrix4f::Identity(), R360Plant_Transform = Eigen::Matrix4f::Zero(), T_Pro2Cam = Eigen::Matrix4f::Identity(), T_Pro2chessboard = Eigen::Matrix4f::Identity(), T_Cam2chessboard = Eigen::Matrix4f::Identity(), T_Rz180 = Eigen::Matrix4f::Identity();
 	
-	CvMatToMatrix4fzk(&T_Cam2Pro, Cam_extrinsic_matrix);
-	CvMatToMatrix4fzk(&T_Word2Pro, Pro_extrinsic_matrix);
-	T_word2Cam = T_Word2Pro*(T_Cam2Pro.inverse());
+	CvMatToMatrix4fzk(&T_Pro2chessboard, Cam_extrinsic_matrix);
+	CvMatToMatrix4fzk(&T_Cam2chessboard, Pro_extrinsic_matrix);
+	T_Pro2Cam = T_Pro2chessboard*(T_Cam2chessboard.inverse());
+	T_Rz180(0, 0) = -1;
+	T_Rz180(1, 1) = -1;
 
-	//计算变换矩阵：p1=T1p0,p2=T2p0,p1=T1*inverserT2p2   (p0和p1,p2是对应点，所以当p1与p2重合的变换就是所求),将点云2移动到1
+	//计算变换矩阵：p1=T1p0,p2=T2p0,p1=T1*inverserT2p2   (p0和p1,p2是对应点，所以当p1与p2重合的变换就是所求),将点云2移动到1,T1,T2是指从点云坐标系（根据TI代码，是投影仪坐标系（不排除是摄像机坐标系的可能）绕Z旋转180°得到）变换到棋盘坐标系
 	for (int i = 0; i < (T_mat_4x4.size()-1); i++)//计算两两标定得到的矩阵，相加然后求平均（也算某种意义的平均齐次变换吧）
 	{
 		CvMatToMatrix4fzk(&T1, &(T_mat_4x4[i]));
 		CvMatToMatrix4fzk(&T2, &(T_mat_4x4[i+1]));
 
-		R360Plant_Transform += ((T_word2Cam*T1)) * ((T2.inverse())*(T_word2Cam.inverse()));
+		R360Plant_Transform += ((T_Rz180*T_Pro2Cam*T1)) * ((T_Rz180*T_Pro2Cam*T2).inverse());
 		std::cout << T1<< endl;
 		std::cout << T2<< endl;
 		std::cout << "T1*(T2.inverse()):" << endl;
 		std::cout << T1*(T2.inverse())<< endl;
-		std::cout << ((T_Cam2Pro.inverse()*T1)) * ((T2.inverse())*(T_Cam2Pro)) << endl;
+		std::cout << ((T_Rz180*T_Pro2Cam*T1)) * ((T_Rz180*T_Pro2Cam*T2).inverse()) << endl;
 		std::cout << R360Plant_Transform << endl;
 	}
 	R360Plant_Transform = R360Plant_Transform / (T_mat_4x4.size() - 1);
 	std::cout << R360Plant_Transform << endl;//测试算的对不对
-//	R360Plant_Transform = R360Plant_Transform.inverse();
+
 	if ((Registration_flag == 0) || (Registration_flag == 2))
 	{
 		//粗拼接（转台齐次变换）
