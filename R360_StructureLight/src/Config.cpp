@@ -26,6 +26,11 @@ void ArgvConfig()
 	TransformationEpsilon = config_num[10];//ÔÊÐí×î´óÎó²î
 	downsample_flag = (bool)(config_num[11]);
 	Cali_Pic_Num = (int)(config_num[12]);
+	GetRough_T_flag = (int)(config_num[13]);
+	for (int i = 0; i < 12; i++)
+	{
+		GetR360Rough_T(i/4, i%4) = config_num[i+14];
+	}
 }
 
 void Get_ConfigNum()

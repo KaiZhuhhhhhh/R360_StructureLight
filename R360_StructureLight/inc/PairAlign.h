@@ -56,6 +56,8 @@ extern float MaxCorrespondenceDistance; //¶ÔÓ¦µãÖ®¼äµÄ×î´ó¾àÀë£¨0.1£©, ÔÚÅä×¼¹ı³
 extern float LeafSize;
 extern float TransformationEpsilon ;//ÔÊĞí×î´óÎó²î
 extern bool downsample_flag;
+extern int GetRough_T_flag;
+extern Eigen::Matrix4f GetR360Rough_T;
 
 void showCloudsLeft(const PointCloud::Ptr cloud_target, const PointCloud::Ptr cloud_source);
 

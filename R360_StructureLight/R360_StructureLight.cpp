@@ -50,9 +50,10 @@ int _tmain(int argc, char** argv)
 	std::cout << a << endl;
 	a = Pro_extrinsic_matrix;
 	std::cout << a << endl;
-
-	find_rotation_mat();//算出每幅标定图像的其次变换矩阵存在全局变量T_mat_4x4中
-
+	if (GetRough_T_flag == 1)
+	{
+		find_rotation_mat();//算出每幅标定图像的其次变换矩阵存在全局变量T_mat_4x4中
+	}
 	AccurateRegistration(data);//精细拼接
 
 	return 0;

@@ -54,11 +54,11 @@ void inputCameraParam(CvMat * intrinsic_matrix1, CvMat * distortion_coeffs1, CvM
 
 	//获取投影仪参数
 	CvFileStorage *fs1;
-	fs = cvOpenFileStorage("D:/TexasInstruments-DLP/DLP4500-structurelight-R360/bin/calibration/data/projector.xml", 0, CV_STORAGE_READ);
-	if (fs)
+	fs1 = cvOpenFileStorage("D:/TexasInstruments-DLP/DLP4500-structurelight-R360/bin/calibration/data/projector.xml", 0, CV_STORAGE_READ);
+	if (fs1)
 	{
-		*temp = *cvCloneMat((CvMat *)cvReadByName(fs, NULL, "extrinsic"));
-		cvReleaseFileStorage(&fs);
+		*temp = *cvCloneMat((CvMat *)cvReadByName(fs1, NULL, "extrinsic"));
+		cvReleaseFileStorage(&fs1);
 	}
 	else
 	{
@@ -160,7 +160,7 @@ int find_rotation_mat()
 {
 	char  cali_flag;
 	char t[10];
-	cout << "1、进行标定    2、已标定，直接测量" << endl;
+	cout << "1、进行标定    2、已拍照，直接计算 " << endl;
 	cin >> cali_flag;
 
 	cout << "输入一周旋转几次：" << endl;

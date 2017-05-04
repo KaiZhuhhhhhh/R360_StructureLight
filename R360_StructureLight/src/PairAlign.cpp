@@ -45,6 +45,9 @@ float MaxCorrespondenceDistance = 0.1; //对应点之间的最大距离（0.1）, 在配准过程
 float LeafSize = 0.05;
 float TransformationEpsilon = 1e-6;//允许最大误差
 bool downsample_flag = true;
+int GetRough_T_flag = 1;//1表示重新标定获得，0表示已保存直接读取
+Eigen::Matrix4f GetR360Rough_T = Eigen::Matrix4f::Identity();
+
 
 // 定义新的点表达方式< x, y, z, curvature > 坐标+曲率
 class MyPointRepresentation : public pcl::PointRepresentation <PointNormalT> //继承关系
@@ -290,28 +293,59 @@ void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data
 	Eigen::Matrix4f pairTransform;//GlobalTransform = Eigen::Matrix4f::Identity(), 
 	Eigen::Matrix4f T1 = Eigen::Matrix4f::Identity(), T2 = Eigen::Matrix4f::Identity(), R360Plant_Transform = Eigen::Matrix4f::Zero(), T_Pro2Cam = Eigen::Matrix4f::Identity(), T_Pro2chessboard = Eigen::Matrix4f::Identity(), T_Cam2chessboard = Eigen::Matrix4f::Identity(), T_Rz180 = Eigen::Matrix4f::Identity();
 	
-	CvMatToMatrix4fzk(&T_Pro2chessboard, Cam_extrinsic_matrix);
-	CvMatToMatrix4fzk(&T_Cam2chessboard, Pro_extrinsic_matrix);
-	T_Pro2Cam = T_Pro2chessboard*(T_Cam2chessboard.inverse());
-	T_Rz180(0, 0) = -1;
-	T_Rz180(1, 1) = -1;
-
-	//计算变换矩阵：p1=T1p0,p2=T2p0,p1=T1*inverserT2p2   (p0和p1,p2是对应点，所以当p1与p2重合的变换就是所求),将点云2移动到1,T1,T2是指从点云坐标系（根据TI代码，是投影仪坐标系（不排除是摄像机坐标系的可能）绕Z旋转180°得到）变换到棋盘坐标系
-	for (int i = 0; i < (T_mat_4x4.size()-1); i++)//计算两两标定得到的矩阵，相加然后求平均（也算某种意义的平均齐次变换吧）
+	if (GetRough_T_flag == 1)
 	{
-		CvMatToMatrix4fzk(&T1, &(T_mat_4x4[i]));
-		CvMatToMatrix4fzk(&T2, &(T_mat_4x4[i+1]));
+		CvMatToMatrix4fzk(&T_Pro2chessboard, Cam_extrinsic_matrix);
+		CvMatToMatrix4fzk(&T_Cam2chessboard, Pro_extrinsic_matrix);
+		T_Pro2Cam = T_Pro2chessboard*(T_Cam2chessboard.inverse());
+		T_Rz180(0, 0) = -1;
+		T_Rz180(1, 1) = -1;
 
-		R360Plant_Transform += ((T_Rz180*T_Pro2Cam*T1)) * ((T_Rz180*T_Pro2Cam*T2).inverse());
-		std::cout << T1<< endl;
-		std::cout << T2<< endl;
-		std::cout << "T1*(T2.inverse()):" << endl;
-		std::cout << T1*(T2.inverse())<< endl;
-		std::cout << ((T_Rz180*T_Pro2Cam*T1)) * ((T_Rz180*T_Pro2Cam*T2).inverse()) << endl;
+		//计算变换矩阵：p1=T1p0,p2=T2p0,p1=T1*inverserT2p2   (p0和p1,p2是对应点，所以当p1与p2重合的变换就是所求),将点云2移动到1,T1,T2是指从点云坐标系（根据TI代码，是投影仪坐标系（不排除是摄像机坐标系的可能）绕Z旋转180°得到）变换到棋盘坐标系
+		for (int i = 0; i < (T_mat_4x4.size() - 1); i++)//计算两两标定得到的矩阵，相加然后求平均（也算某种意义的平均齐次变换吧）
+		{
+			CvMatToMatrix4fzk(&T1, &(T_mat_4x4[i]));
+			CvMatToMatrix4fzk(&T2, &(T_mat_4x4[i + 1]));
+
+			R360Plant_Transform += ((T_Rz180*T_Pro2Cam*T1)) * ((T_Rz180*T_Pro2Cam*T2).inverse());
+			std::cout << T1 << endl;
+			std::cout << T2 << endl;
+			std::cout << "T1*(T2.inverse()):" << endl;
+			std::cout << T1*(T2.inverse()) << endl;
+			std::cout << ((T_Rz180*T1)) * ((T_Rz180*T2).inverse()) << endl;//此处假设是相机坐标系
+			std::cout << R360Plant_Transform << endl;
+		}
+		R360Plant_Transform = R360Plant_Transform / (T_mat_4x4.size() - 1);
+		std::cout << R360Plant_Transform << endl;//测试算的对不对
+	}
+	else if (GetRough_T_flag == 0)
+	{
+		//CvMat *temp1 = cvCreateMat(4, 4, CV_64FC1);
+		//CvMat *temp2 = cvCreateMat(4, 4, CV_32FC1);
+
+		//CvFileStorage *fs1;
+		//fs1 = cvOpenFileStorage(".//result//Rough_T.xml", 0, CV_STORAGE_READ);
+		//if (fs1)
+		//{
+		//	*temp1 = *cvCloneMat((CvMat *)cvReadByName(fs1, NULL, "Rough_T"));
+		//	cvReleaseFileStorage(&fs1);
+		//}
+		//else
+		//{
+		//	cout << "Error: can not find the Rough_T!!!!!" << endl;
+		//}
+
+		//for (int i = 0; i < 4; i++)
+		//{
+		//	for (int j = 0; j < 4; j++)
+		//	{
+		//		CV_MAT_ELEM(*temp2, float, i, j) = CV_MAT_ELEM(*temp1, double, i, j);
+		//	}
+		//}
+		//CvMatToMatrix4fzk(&R360Plant_Transform, temp2);
+		R360Plant_Transform = GetR360Rough_T;
 		std::cout << R360Plant_Transform << endl;
 	}
-	R360Plant_Transform = R360Plant_Transform / (T_mat_4x4.size() - 1);
-	std::cout << R360Plant_Transform << endl;//测试算的对不对
 
 	if ((Registration_flag == 0) || (Registration_flag == 2))
 	{
