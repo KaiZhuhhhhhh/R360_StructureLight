@@ -73,4 +73,6 @@ void roughTranslation(PointCloud::Ptr cloud, Eigen::Matrix4f &T, int n );
 
 void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data_temp);
 
+void AccurateRegistration2(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data_temp);
+
 #endif

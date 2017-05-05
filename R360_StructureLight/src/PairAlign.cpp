@@ -279,7 +279,7 @@ void pairAlign(const PointCloud::Ptr cloud_src, const PointCloud::Ptr cloud_tgt,
 	final_transform = targetToSource; //最终的变换。目标点云到源点云的变换矩阵
 }
 
-void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data_temp)
+void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data_temp)//先把所有点云移动到1，然后再已1为基础拼接其他的
 {
 	//创建一个 PCLVisualizer 对象
 	p = new pcl::visualization::PCLVisualizer("Pairwise Incremental Registration example"); //p是全局变量
@@ -307,12 +307,12 @@ void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data
 			CvMatToMatrix4fzk(&T1, &(T_mat_4x4[i]));
 			CvMatToMatrix4fzk(&T2, &(T_mat_4x4[i + 1]));
 
-			R360Plant_Transform += ((T_Rz180*T_Pro2Cam*T1)) * ((T_Rz180*T_Pro2Cam*T2).inverse());
+			R360Plant_Transform += ((T_Rz180*T1)) * ((T_Rz180*T2).inverse());//此处假设是相机坐标系，若是投影仪坐标系则((T_Rz180*T_Pro2Cam*T1)) * ((T_Rz180*T_Pro2Cam*T2).inverse())
 			std::cout << T1 << endl;
 			std::cout << T2 << endl;
 			std::cout << "T1*(T2.inverse()):" << endl;
 			std::cout << T1*(T2.inverse()) << endl;
-			std::cout << ((T_Rz180*T1)) * ((T_Rz180*T2).inverse()) << endl;//此处假设是相机坐标系
+			std::cout << ((T_Rz180*T1)) * ((T_Rz180*T2).inverse()) << endl;
 			std::cout << R360Plant_Transform << endl;
 		}
 		R360Plant_Transform = R360Plant_Transform / (T_mat_4x4.size() - 1);
@@ -400,6 +400,103 @@ void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data
 	pcl::PLYWriter writer;
 	writer.write(output_filename.str(), *result);
 //	pcl::io::savePCDFile(ss.str(), *result); //保存成对的配准结果
+}
+
+void AccurateRegistration2(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data_temp)//将1移动到2再icp拼接，在将结果移动到3与3icp
+{
+	//创建一个 PCLVisualizer 对象
+	p = new pcl::visualization::PCLVisualizer("Pairwise Incremental Registration example"); //p是全局变量
+	p->createViewPort(0.0, 0, 0.5, 1.0, vp_1); //创建左视区
+	p->createViewPort(0.5, 0, 1.0, 1.0, vp_2); //创建右视区
+
+	//创建点云指针和变换矩阵
+	PointCloud::Ptr result(new PointCloud), source(new PointCloud), target; //创建3个点云指针，分别用于结果，源点云和目标点云
+	//全局变换矩阵，单位矩阵，成对变换
+	//逗号表达式，先创建一个单位矩阵，然后将成对变换 赋给 全局变换
+	Eigen::Matrix4f pairTransform;//GlobalTransform = Eigen::Matrix4f::Identity(), 
+	Eigen::Matrix4f T1 = Eigen::Matrix4f::Identity(), T2 = Eigen::Matrix4f::Identity(), R360Plant_Transform = Eigen::Matrix4f::Zero(), T_Pro2Cam = Eigen::Matrix4f::Identity(), T_Pro2chessboard = Eigen::Matrix4f::Identity(), T_Cam2chessboard = Eigen::Matrix4f::Identity(), T_Rz180 = Eigen::Matrix4f::Identity();
+
+	if (GetRough_T_flag == 1)
+	{
+		CvMatToMatrix4fzk(&T_Pro2chessboard, Cam_extrinsic_matrix);
+		CvMatToMatrix4fzk(&T_Cam2chessboard, Pro_extrinsic_matrix);
+		T_Pro2Cam = T_Pro2chessboard*(T_Cam2chessboard.inverse());
+		T_Rz180(0, 0) = -1;
+		T_Rz180(1, 1) = -1;
+
+		//计算变换矩阵：p1=T1p0,p2=T2p0,p1=T1*inverserT2p2   (p0和p1,p2是对应点，所以当p1与p2重合的变换就是所求),将点云2移动到1,T1,T2是指从点云坐标系（根据TI代码，是投影仪坐标系（不排除是摄像机坐标系的可能）绕Z旋转180°得到）变换到棋盘坐标系
+		for (int i = 0; i < (T_mat_4x4.size() - 1); i++)//计算两两标定得到的矩阵，相加然后求平均（也算某种意义的平均齐次变换吧）
+		{
+			CvMatToMatrix4fzk(&T1, &(T_mat_4x4[i]));
+			CvMatToMatrix4fzk(&T2, &(T_mat_4x4[i + 1]));
+
+			R360Plant_Transform += ((T_Rz180*T2)) * ((T_Rz180*T1).inverse());
+			std::cout << T1 << endl;
+			std::cout << T2 << endl;
+			std::cout << ((T_Rz180*T2)) * ((T_Rz180*T1).inverse()) << endl;//此处假设是相机坐标系
+			std::cout << R360Plant_Transform << endl;
+		}
+		R360Plant_Transform = R360Plant_Transform / (T_mat_4x4.size() - 1);
+		std::cout << R360Plant_Transform << endl;//测试算的对不对
+	}
+	else if (GetRough_T_flag == 0)
+	{
+		R360Plant_Transform = GetR360Rough_T.inverse();
+		std::cout << R360Plant_Transform << endl;
+	}
+
+	//精拼接，遍历所有的点云文件
+	//	PointCloud::Ptr temp(new PointCloud); //创建临时点云指针
+	*result = *(data_temp[0].cloud);
+	for (size_t i = 1; i < data_temp.size(); ++i)//两两配准，1+2，把2移到1位置
+	{
+		*source = *result; //源点云
+		target = data_temp[i].cloud; //目标点云
+
+		if ((Registration_flag == 0) || (Registration_flag == 2))
+		{
+			roughTranslation(source, R360Plant_Transform, 1);//将面结果点云移动到下一点云的位置		
+		}
+
+		showCloudsLeft(source, target); //在左视区，简单的显示源点云和目标点云		
+
+		//显示正在配准的点云文件名和各自的点数
+		PCL_INFO("Aligning %s (%d points) with %s (%d points).\n", data_temp[i - 1].f_name.c_str(), source->points.size(), data_temp[i].f_name.c_str(), target->points.size());
+
+		//********************************************************
+
+		if ((Registration_flag == 1) || (Registration_flag == 2))
+		{
+			//配准2个点云，函数定义见上面
+			pairAlign(target, source, result, pairTransform, downsample_flag);//temp就是将src拼在target合并的点云
+		}
+		else if (Registration_flag == 0)
+		{
+			*result = *source + *target;
+		}
+		//********************************************************
+
+		p->removePointCloud("source"); //根据给定的ID，从屏幕中去除一个点云。参数是ID
+		p->removePointCloud("target");
+		PointCloudColorHandlerCustom<PointT> cloud_tgt_a(result, 0, 255, 0); //设置点云显示颜色，下同
+		//		PointCloudColorHandlerCustom<PointT> cloud_src_h(cloud_src, 255, 0, 0);
+		p->addPointCloud(result, cloud_tgt_a, "target", vp_2); //添加点云数据，下同
+		//		p->addPointCloud(cloud_src, cloud_src_h, "source", vp_2);
+
+		PCL_INFO("Press zzzzzzzz.\n");
+		p->spinOnce();
+		//		Sleep(5000);
+		//p->removePointCloud("source");
+		//p->removePointCloud("target");
+	}
+	char s[30];
+	std::cout << "输入保存文件名：" << endl;
+std:cin >> s;
+	std::stringstream output_filename; //这两句是生成文件名
+	output_filename << ".//result//" << s << ".ply";
+	pcl::PLYWriter writer;
+	writer.write(output_filename.str(), *result);
+	//	pcl::io::savePCDFile(ss.str(), *result); //保存成对的配准结果
 }
 
 
