@@ -86,6 +86,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="inc\3plant_cali.h" />
     <ClInclude Include="inc\Calibrate.h" />
     <ClInclude Include="inc\config.h" />
     <ClInclude Include="inc\PairAlign.h" />
@@ -95,6 +96,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="R360_StructureLight.cpp" />
+    <ClCompile Include="src\3plant_cali.cpp" />
     <ClCompile Include="src\Calibrate.cpp" />
     <ClCompile Include="src\Config.cpp" />
     <ClCompile Include="src\PairAlign.cpp" />

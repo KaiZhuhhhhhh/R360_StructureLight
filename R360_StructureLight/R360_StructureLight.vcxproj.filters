@@ -36,6 +36,9 @@
     <ClInclude Include="inc\SurfaceRebuild.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="inc\3plant_cali.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -54,6 +57,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\SurfaceRebuild.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="src\3plant_cali.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

@@ -298,6 +298,7 @@ void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data
 		CvMatToMatrix4fzk(&T_Pro2chessboard, Cam_extrinsic_matrix);
 		CvMatToMatrix4fzk(&T_Cam2chessboard, Pro_extrinsic_matrix);
 		T_Pro2Cam = T_Pro2chessboard*(T_Cam2chessboard.inverse());
+//		T_Pro2Cam = T_Pro2chessboard;
 		T_Rz180(0, 0) = -1;
 		T_Rz180(1, 1) = -1;
 
@@ -307,12 +308,13 @@ void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data
 			CvMatToMatrix4fzk(&T1, &(T_mat_4x4[i]));
 			CvMatToMatrix4fzk(&T2, &(T_mat_4x4[i + 1]));
 
-			R360Plant_Transform += ((T_Rz180*T1)) * ((T_Rz180*T2).inverse());//此处假设是相机坐标系，若是投影仪坐标系则((T_Rz180*T_Pro2Cam*T1)) * ((T_Rz180*T_Pro2Cam*T2).inverse())
+//			R360Plant_Transform += ((T_Rz180*T1)) * ((T_Rz180*T2).inverse());//此处假设是相机坐标系，若是投影仪坐标系则((T_Rz180*T_Pro2Cam*T1)) * ((T_Rz180*T_Pro2Cam*T2).inverse())
+			R360Plant_Transform += ((T_Rz180*T_Pro2Cam*T1)) * (((T_Rz180*T_Pro2Cam*T2)).inverse());//将1转到2此处假设点云是基于投影仪坐标系
 			std::cout << T1 << endl;
 			std::cout << T2 << endl;
 			std::cout << "T1*(T2.inverse()):" << endl;
 			std::cout << T1*(T2.inverse()) << endl;
-			std::cout << ((T_Rz180*T1)) * ((T_Rz180*T2).inverse()) << endl;
+			std::cout << ((T_Rz180*T_Pro2Cam*T1)) * (((T_Rz180*T_Pro2Cam*T2)).inverse()) << endl;
 			std::cout << R360Plant_Transform << endl;
 		}
 		R360Plant_Transform = R360Plant_Transform / (T_mat_4x4.size() - 1);
@@ -371,7 +373,7 @@ void AccurateRegistration(std::vector<PCD, Eigen::aligned_allocator<PCD> > &data
 		if ((Registration_flag == 1) || (Registration_flag == 2))
 		{
 			//配准2个点云，函数定义见上面
-			pairAlign(source, target, result, pairTransform, downsample_flag);//temp就是将target拼在src合并的点云
+			pairAlign(target, source, result, pairTransform, downsample_flag);//temp就是将source拼target在合并的点云
 		}
 		else if (Registration_flag == 0)
 		{
